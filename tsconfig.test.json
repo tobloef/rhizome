@@ -1,0 +1,24 @@
+{
+  "compilerOptions": {
+    "strict": true,
+    "target": "ESNext",
+    "module": "NodeNext",
+    "lib": ["ESNext"],
+    "verbatimModuleSyntax": true,
+    "declaration": false,
+    "allowImportingTsExtensions": true,
+    "rewriteRelativeImportExtensions": true,
+    "types": ["node"],
+    "checkJs": true,
+    "allowJs": true,
+    "noEmit": true,
+    "noUncheckedIndexedAccess": true
+  },
+  "exclude": [
+    "node_modules",
+    "**/*.d.ts"
+  ],
+  "include": [
+    "src/**/*.test.ts"
+  ]
+}
