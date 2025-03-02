@@ -94,14 +94,14 @@ export abstract class ResourceNode<
     dependencies: Dependencies
   ): Promise<ResourceType>;
 
-  protected abstract uninitialize(
+  protected abstract uninitialize?(
     dependencies: Dependencies
   ): Promise<void>;
 
   async destroy() {
     try {
       const dependencies = await this.#evaluateDependencies();
-      await this.uninitialize(dependencies);
+      await this.uninitialize?.(dependencies);
       this.status = "uninitialized";
     } catch (error) {
       const uninitializeError = new ResourceNodeUninitializeError(this, error);
@@ -185,7 +185,7 @@ export abstract class ResourceNode<
         if (this.status === "uninitialized") {
           result = await this.initialize(dependencies);
         } else {
-          await this.uninitialize(dependencies);
+          await this.uninitialize?.(dependencies);
           result = await this.initialize(dependencies);
         }
 

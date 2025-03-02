@@ -72,7 +72,7 @@ export class ResourceNode {
     async destroy() {
         try {
             const dependencies = await this.#evaluateDependencies();
-            await this.uninitialize(dependencies);
+            await this.uninitialize?.(dependencies);
             this.status = "uninitialized";
         }
         catch (error) {
@@ -142,7 +142,7 @@ export class ResourceNode {
                     result = await this.initialize(dependencies);
                 }
                 else {
-                    await this.uninitialize(dependencies);
+                    await this.uninitialize?.(dependencies);
                     result = await this.initialize(dependencies);
                 }
                 // Check if it was marked a new status while we were loading
