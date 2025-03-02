@@ -94,7 +94,7 @@ export abstract class ResourceNode<
     dependencies: Dependencies
   ): Promise<ResourceType>;
 
-  protected abstract uninitialize?(
+  protected uninitialize?(
     dependencies: Dependencies
   ): Promise<void>;
 
