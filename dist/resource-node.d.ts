@@ -49,11 +49,10 @@ export declare abstract class ResourceNode<ResourceType, Dependencies extends De
     get status(): ResourceNodeStatus;
     set status(value: ResourceNodeStatus);
     protected abstract initialize(dependencies: Dependencies): Promise<ResourceType>;
-    protected abstract reload?(dependencies: Dependencies): Promise<ResourceType>;
-    protected abstract cleanup(dependencies: Dependencies): Promise<void>;
-    uninitialize(): Promise<void>;
+    protected abstract uninitialize(dependencies: Dependencies): Promise<void>;
+    destroy(): Promise<void>;
     addDependent(dependent: ResourceNode<any, any>): void;
-    markStale(invalidators: ResourceNode<any, any>[]): void;
+    markStale(invalidators?: ResourceNode<any, any>[]): void;
     markDependentsStale(invalidators?: ResourceNode<any, any>[]): void;
     evaluate(): Promise<ResourceType>;
 }

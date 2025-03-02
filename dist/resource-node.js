@@ -69,10 +69,10 @@ export class ResourceNode {
             this.#continuousEvaluationCount = 0;
         }
     }
-    async uninitialize() {
+    async destroy() {
         try {
             const dependencies = await this.#evaluateDependencies();
-            await this.cleanup(dependencies);
+            await this.uninitialize(dependencies);
             this.status = "uninitialized";
         }
         catch (error) {
@@ -85,7 +85,7 @@ export class ResourceNode {
     addDependent(dependent) {
         this.dependentNodes.add(dependent);
     }
-    markStale(invalidators) {
+    markStale(invalidators = []) {
         switch (this.status) {
             case "uninitialized":
             case "stale":
@@ -141,11 +141,8 @@ export class ResourceNode {
                 if (this.status === "uninitialized") {
                     result = await this.initialize(dependencies);
                 }
-                else if (this.reload !== undefined) {
-                    result = await this.reload(dependencies);
-                }
                 else {
-                    await this.cleanup(dependencies);
+                    await this.uninitialize(dependencies);
                     result = await this.initialize(dependencies);
                 }
                 // Check if it was marked a new status while we were loading
