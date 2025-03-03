@@ -3,7 +3,7 @@ export type DependencyMap = Record<string, unknown>;
 export type ResourceNodeOptions<Dependencies extends DependencyMap | undefined> = {
     errorables?: KeyOfOptionalDependency<Dependencies>[];
 };
-export type DependencyResourceNodes<Dependencies extends DependencyMap | undefined> = {
+export type ResourceNodes<Dependencies extends DependencyMap | undefined> = {
     [K in keyof Dependencies]: ResourceNode<Dependencies[K], any>;
 };
 export type KeyOfOptionalDependency<T> = Keys<Optionals<T>>;

@@ -1,4 +1,4 @@
-import type { DependencyMap, DependencyResourceNodes, ResourceNodeOptions, ResourceNodeStatus } from "./resource-node.types.ts";
+import type { DependencyMap, ResourceNodes, ResourceNodeOptions, ResourceNodeStatus } from "./resource-node.types.ts";
 import { ResourceNodeRefreshError } from "./errors/resource-node-refresh-error.ts";
 /**
  * A node representing a resource of a specific type.
@@ -41,11 +41,11 @@ import { ResourceNodeRefreshError } from "./errors/resource-node-refresh-error.t
  */
 export declare abstract class ResourceNode<ResourceType, Dependencies extends DependencyMap> {
     #private;
-    dependencyNodes: DependencyResourceNodes<Dependencies>;
+    dependencyNodes: ResourceNodes<Dependencies>;
     dependentNodes: Set<ResourceNode<any, any>>;
     error?: ResourceNodeRefreshError;
     options?: ResourceNodeOptions<Dependencies>;
-    constructor(dependencyNodes: DependencyResourceNodes<Dependencies>, options?: ResourceNodeOptions<Dependencies>);
+    constructor(dependencyNodes: ResourceNodes<Dependencies>, options?: ResourceNodeOptions<Dependencies>);
     get status(): ResourceNodeStatus;
     set status(value: ResourceNodeStatus);
     protected abstract initialize(dependencies: Dependencies): Promise<ResourceType>;

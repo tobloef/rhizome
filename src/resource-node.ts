@@ -1,6 +1,6 @@
 import type {
   DependencyMap,
-  DependencyResourceNodes,
+  ResourceNodes,
   ResourceNodeOptions, ResourceNodeStatus
 } from "./resource-node.types.ts";
 import { ResourceNodeRefreshError } from "./errors/resource-node-refresh-error.ts";
@@ -50,7 +50,7 @@ export abstract class ResourceNode<
   ResourceType,
   Dependencies extends DependencyMap,
 > {
-  dependencyNodes: DependencyResourceNodes<Dependencies>;
+  dependencyNodes: ResourceNodes<Dependencies>;
   dependentNodes: Set<ResourceNode<any, any>> = new Set();
   error?: ResourceNodeRefreshError;
   options?: ResourceNodeOptions<Dependencies>;
@@ -63,7 +63,7 @@ export abstract class ResourceNode<
   static #MAX_CONTINUOUS_EVALUATION_COUNT = 2;
 
   constructor(
-    dependencyNodes: DependencyResourceNodes<Dependencies>,
+    dependencyNodes: ResourceNodes<Dependencies>,
     options?: ResourceNodeOptions<Dependencies>
   ) {
     this.dependencyNodes = dependencyNodes;

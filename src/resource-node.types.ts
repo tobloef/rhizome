@@ -8,7 +8,7 @@ export type ResourceNodeOptions<
   errorables?: KeyOfOptionalDependency<Dependencies>[];
 }
 
-export type DependencyResourceNodes<
+export type ResourceNodes<
   Dependencies extends DependencyMap | undefined
 > = {
   [K in keyof Dependencies]: ResourceNode<Dependencies[K], any>

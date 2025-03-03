@@ -1,2 +1,2 @@
 export { ResourceNode } from "./resource-node.ts";
-export type { DependencyResourceNodes } from "./resource-node.types.ts";
+export type { ResourceNodes } from "./resource-node.types.ts";
