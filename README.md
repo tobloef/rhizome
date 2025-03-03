@@ -79,19 +79,25 @@ export class DeviceResource extends ResourceNode<GPUDevice, {}> {
 
     this.#device.lost.then(() => {
       console.warn("GPU Device was lost, refreshing.");
-      this.markStale(); // Provided by the ResourceNode base class
+
+      // Mark the device resource as stale, so it'll be updated next time it's evaluated
+      this.markStale();
     });
 
     return this.#device;
   }
 
+  // Will be called before the resource is re-initialized
   async uninitialize() {
-    if (this.#device !== undefined) {
-      this.#device.destroy();
+    if (this.#device === undefined) {
+      return;
     }
+
+    this.#device.destroy();
   }
 }
 
+// We're dependent on having a GPU device to create the texture on
 type TextureDependencies = {
   device: GPUDevice,
 }
@@ -119,6 +125,7 @@ class TextureResource extends ResourceNode<GPUTexture, TextureDependencies> {
     return this.#texture
   }
 
+  // Will be called before the resource is re-initialized
   override async uninitialize() {
     if (this.#texture === undefined) {
       return;
