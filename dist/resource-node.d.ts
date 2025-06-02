@@ -55,4 +55,8 @@ export declare abstract class ResourceNode<ResourceType, Dependencies extends De
     markStale(invalidators?: ResourceNode<any, any>[]): void;
     markDependentsStale(invalidators?: ResourceNode<any, any>[]): void;
     evaluate(): Promise<ResourceType>;
+    onChange(callback: (result: ResourceType | ResourceNodeRefreshError) => void): RemoveListenerCallback;
+    protected triggerOnChangeCallbacks(result: ResourceType | ResourceNodeRefreshError): void;
 }
+export type OnChangeCallback<ResourceType> = (result: ResourceType | ResourceNodeRefreshError) => void;
+export type RemoveListenerCallback = () => void;

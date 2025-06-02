@@ -59,6 +59,7 @@ export abstract class ResourceNode<
   #valuePromise?: Promise<ResourceType>;
   #erroredDependencies = new Set<keyof Dependencies>();
   #continuousEvaluationCount: number = 0;
+  #onChangeCallbacks = new Set<OnChangeCallback<ResourceType>>();
 
   static #MAX_CONTINUOUS_EVALUATION_COUNT = 2;
 
@@ -221,8 +222,12 @@ export abstract class ResourceNode<
         }
 
         resolve(result);
+
+        this.triggerOnChangeCallbacks(result);
       } catch (e) {
         reject(e);
+
+        this.triggerOnChangeCallbacks(new ResourceNodeRefreshError(this, e));
       }
     });
   }
@@ -272,4 +277,28 @@ export abstract class ResourceNode<
 
     return dependencies as Dependencies
   }
+
+  onChange(
+    callback: (result: ResourceType | ResourceNodeRefreshError) => void
+  ): RemoveListenerCallback {
+    this.#onChangeCallbacks.add(callback);
+
+    return () => {
+      this.#onChangeCallbacks.delete(callback);
+    };
+  }
+
+  protected triggerOnChangeCallbacks(
+    result: ResourceType | ResourceNodeRefreshError
+  ) {
+    for (const callback of this.#onChangeCallbacks) {
+      callback(result);
+    }
+  }
 }
+
+export type OnChangeCallback<ResourceType> = (
+  result: ResourceType | ResourceNodeRefreshError
+) => void;
+
+export type RemoveListenerCallback = () => void;

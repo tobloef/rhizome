@@ -49,6 +49,7 @@ export class ResourceNode {
     #valuePromise;
     #erroredDependencies = new Set();
     #continuousEvaluationCount = 0;
+    #onChangeCallbacks = new Set();
     static #MAX_CONTINUOUS_EVALUATION_COUNT = 2;
     constructor(dependencyNodes, options) {
         this.dependencyNodes = dependencyNodes;
@@ -170,9 +171,11 @@ export class ResourceNode {
                         result = await this.#createValuePromise();
                 }
                 resolve(result);
+                this.triggerOnChangeCallbacks(result);
             }
             catch (e) {
                 reject(e);
+                this.triggerOnChangeCallbacks(new ResourceNodeRefreshError(this, e));
             }
         });
     }
@@ -203,6 +206,17 @@ export class ResourceNode {
             }
         }
         return dependencies;
+    }
+    onChange(callback) {
+        this.#onChangeCallbacks.add(callback);
+        return () => {
+            this.#onChangeCallbacks.delete(callback);
+        };
+    }
+    triggerOnChangeCallbacks(result) {
+        for (const callback of this.#onChangeCallbacks) {
+            callback(result);
+        }
     }
 }
 //# sourceMappingURL=resource-node.js.map
