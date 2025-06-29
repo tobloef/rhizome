@@ -8,7 +8,7 @@ export type ResourceStatus = (
   | "unevaluated"
   | "evaluating"
   | "evaluated"
-  | "stale"
+  | "invalidated"
   | "errored"
   | "destroyed"
 );
@@ -68,7 +68,7 @@ export type OnErrorableErrorCallback<
   dependency: AnyResource;
 }) => void;
 
-export type OnMarkedStaleCallback<
+export type OnInvalidatedCallback<
   Res extends AnyResource = AnyResource,
 > = (params: {
   resource: Res;

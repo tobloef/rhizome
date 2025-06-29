@@ -1,4 +1,4 @@
-import type { AnyResource, DependencyMap, EmptyOptions, EvaluationResult, OnErrorableErrorCallback, OnEvaluatedCallback, OnMarkedStaleCallback, OnTeardownCallback, RemoveCallback, ResourceEvaluator, ResourceOptions, ResourcesFor, ResourceStatus, } from "./resource.types.ts";
+import type { AnyResource, DependencyMap, EmptyOptions, EvaluationResult, OnErrorableErrorCallback, OnEvaluatedCallback, OnInvalidatedCallback, OnTeardownCallback, RemoveCallback, ResourceEvaluator, ResourceOptions, ResourcesFor, ResourceStatus, } from "./resource.types.ts";
 import { errorToString } from "./utils/error-to-string.ts";
 import { ResourceReevaluationError } from "./errors/resource-reevaluation-error.ts";
 import { assertExhaustive } from "./utils/assert-exhaustive.ts";
@@ -33,8 +33,8 @@ export class Resource<
   private evaluationPromise?: Promise<EvaluationResult<Type>>;
   private erroredDependencies = new Set<keyof Dependencies>();
   private onEvaluatedCallbacks = new Set<OnEvaluatedCallback<Resource<Type, Dependencies, Options>>>();
+  private onInvalidatedCallbacks = new Set<OnInvalidatedCallback<Resource<Type, Dependencies, Options>>>();
   private onErrorableErrorCallbacks = new Set<OnErrorableErrorCallback<Resource<Type, Dependencies, Options>>>();
-  private onMarkedStaleCallbacks = new Set<OnMarkedStaleCallback<Resource<Type, Dependencies, Options>>>();
   private onTeardownCallback?: OnTeardownCallback;
 
   constructor(
@@ -91,32 +91,32 @@ export class Resource<
     this.onTeardownCallback = undefined;
     this.onEvaluatedCallbacks.clear();
     this.onErrorableErrorCallbacks.clear();
-    this.onMarkedStaleCallbacks.clear();
+    this.onInvalidatedCallbacks.clear();
     this.dependents.clear();
     this.status = "destroyed";
     this.error = undefined;
   }
 
-  markStale(
-    callChain: AnyResource[] = [],
+  invalidate(
+    invalidationChain: AnyResource[] = [],
   ): void {
     switch (this.status) {
       case "unevaluated":
-      case "stale":
-        // Nothing to do, already stale.
+      case "invalidated":
+        // Nothing to do, already invalidated.
         break;
 
       case "evaluated":
       case "evaluating":
       case "errored":
-        this.status = "stale";
-        this.triggerOnMarkedStale(callChain);
-        this.markDependentsStale([...callChain, this]);
+        this.status = "invalidated";
+        this.triggerOnInvalidated(invalidationChain);
+        this.invalidateDependents([...invalidationChain, this]);
         break;
 
       case "destroyed":
         throw new Error(
-          `Cannot mark resource ${this.constructor.name} as stale, it has already been destroyed.`
+          `Cannot invalidate resource ${this.constructor.name}, it has already been destroyed.`
         );
 
       default:
@@ -124,11 +124,11 @@ export class Resource<
     }
   }
 
-  private markDependentsStale(
+  private invalidateDependents(
     callChain: AnyResource[] = [this],
   ): void {
     for (const dependent of this.dependents) {
-      dependent.markStale(callChain);
+      dependent.invalidate(callChain);
     }
   }
 
@@ -146,7 +146,7 @@ export class Resource<
           throw this.error;
 
         case "unevaluated":
-        case "stale":
+        case "invalidated":
           this.evaluationPromise = this.createEvaluationPromise();
           break;
       }
@@ -208,18 +208,18 @@ export class Resource<
     }
   }
 
-  onMarkedStale(
-    callback: OnMarkedStaleCallback<Resource<Type, Dependencies, Options>>,
+  onInvalidated(
+    callback: OnInvalidatedCallback<Resource<Type, Dependencies, Options>>,
   ): RemoveCallback {
-    this.onMarkedStaleCallbacks.add(callback);
+    this.onInvalidatedCallbacks.add(callback);
 
     return () => {
-      this.onMarkedStaleCallbacks.delete(callback);
+      this.onInvalidatedCallbacks.delete(callback);
     };
   }
 
-  private triggerOnMarkedStale(callChain: AnyResource[]): void {
-    for (const callback of this.onMarkedStaleCallbacks) {
+  private triggerOnInvalidated(callChain: AnyResource[]): void {
+    for (const callback of this.onInvalidatedCallbacks) {
       callback({
         resource: this,
         callChain,
@@ -263,18 +263,18 @@ export class Resource<
             break;
 
           case "unevaluated":
-          case "stale":
-            // It went back to a stale state, so we need to re-evaluate
+          case "invalidated":
+            // It went back to an invalidated state, so we need to re-evaluate
             result = await this.createEvaluationPromise();
         }
 
         resolve(result);
 
         this.triggerOnEvaluated(result.value);
-      } catch (e) {
-        reject(e);
+      } catch (error) {
+        reject(error);
 
-        this.triggerOnEvaluated(new ResourceReevaluationError(this, e));
+        this.triggerOnEvaluated(new ResourceReevaluationError(this, error));
       }
     });
   }
