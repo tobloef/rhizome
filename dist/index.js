@@ -1,3 +1,4 @@
-export { ResourceNode } from "./resource-node.js";
-export { ResourceNodeRefreshError } from "./errors/resource-node-refresh-error.js";
+export * from "./resource.js";
+export * from "./resource.types.js";
+export * from "./errors/resource-reevaluation-error.js";
 //# sourceMappingURL=index.js.map

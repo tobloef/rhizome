@@ -1,0 +1,35 @@
+import type { AnyResource, DependencyMap, EmptyOptions, EvaluationResult, OnErrorableErrorCallback, OnEvaluatedCallback, OnMarkedStaleCallback, RemoveCallback, ResourceEvaluator, ResourceOptions, ResourcesFor, ResourceStatus } from "./resource.types.ts";
+import { ResourceReevaluationError } from "./errors/resource-reevaluation-error.ts";
+export declare class Resource<Type, const Dependencies extends DependencyMap = {}, const Options extends ResourceOptions<Dependencies> = EmptyOptions> {
+    static defaultOnErrorableError?: OnErrorableErrorCallback;
+    static defaultOnEvaluated?: OnEvaluatedCallback;
+    dependencies: ResourcesFor<Dependencies>;
+    dependents: Set<AnyResource>;
+    evaluator: ResourceEvaluator<Type, Dependencies, Options>;
+    options: Options;
+    error?: ResourceReevaluationError;
+    private internalStatus;
+    private evaluationPromise?;
+    private erroredDependencies;
+    private onEvaluatedCallbacks;
+    private onErrorableErrorCallbacks;
+    private onMarkedStaleCallbacks;
+    private onTeardownCallback?;
+    constructor(evaluator: ResourceEvaluator<Type, {}, EmptyOptions>);
+    constructor(evaluator: ResourceEvaluator<Type, Dependencies, EmptyOptions>, dependencies: ResourcesFor<Dependencies>);
+    constructor(evaluator: ResourceEvaluator<Type, Dependencies, Options>, dependencies: ResourcesFor<Dependencies>, options: Options);
+    get status(): ResourceStatus;
+    private set status(value);
+    destroy(): Promise<void>;
+    markStale(callChain?: AnyResource[]): void;
+    private markDependentsStale;
+    evaluate(): Promise<EvaluationResult<Type>>;
+    onEvaluated(callback: OnEvaluatedCallback<Resource<Type, Dependencies, Options>>): RemoveCallback;
+    private triggerOnEvaluated;
+    onErrorableError(callback: OnErrorableErrorCallback<Resource<Type, Dependencies, Options>>): RemoveCallback;
+    private triggerOnErrorableError;
+    onMarkedStale(callback: OnMarkedStaleCallback<Resource<Type, Dependencies, Options>>): RemoveCallback;
+    private triggerOnMarkedStale;
+    private createEvaluationPromise;
+    private evaluateDependencies;
+}

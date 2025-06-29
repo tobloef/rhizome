@@ -1,0 +1,32 @@
+export function errorToString(error) {
+    let result = "";
+    if (error.stack) {
+        result += error.stack;
+    }
+    else {
+        result += `${error.constructor.name}: ${error.message}`;
+    }
+    if (error.cause !== undefined && error.cause !== null) {
+        const causeMessage = isErrorLike(error.cause)
+            ? errorToString(error.cause)
+            : String(error.cause);
+        result += "\n\nCaused by:\n\n" + causeMessage;
+    }
+    return result;
+}
+function isErrorLike(value) {
+    if (value === null || value === undefined) {
+        return false;
+    }
+    if (typeof value !== "object") {
+        return false;
+    }
+    if (!("message" in value) || typeof value.message !== "string") {
+        return false;
+    }
+    if ("stack" in value && typeof value.stack !== "string") {
+        return false;
+    }
+    return true;
+}
+//# sourceMappingURL=error-to-string.js.map
