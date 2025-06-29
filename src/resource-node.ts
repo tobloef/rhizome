@@ -279,8 +279,8 @@ export abstract class ResourceNode<
   }
 
   onChange(
-    callback: (result: ResourceType | ResourceNodeRefreshError) => void
-  ): RemoveListenerCallback {
+    callback: OnChangeCallback<ResourceType>
+  ): RemoveOnChangeCallback {
     this.#onChangeCallbacks.add(callback);
 
     return () => {
@@ -301,4 +301,4 @@ export type OnChangeCallback<ResourceType> = (
   result: ResourceType | ResourceNodeRefreshError
 ) => void;
 
-export type RemoveListenerCallback = () => void;
+export type RemoveOnChangeCallback = () => void;
