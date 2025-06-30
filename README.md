@@ -216,3 +216,17 @@ class TextureResource extends ResourceNode<GPUTexture, TextureDependencies> {
   }
 }
 ```
+
+```ts
+const textResource = new Resource({
+  evaluator: ({ ... }) => {
+    const texture = createTexture(...);
+    
+    return {
+      value: texture,
+      onInvalidate: () => destroyTexture(texture),
+    };
+  },
+  dependencies: { ... }
+});
+```

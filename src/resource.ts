@@ -1,4 +1,18 @@
-import type { AnyResource, DependencyMap, EmptyOptions, EvaluationResult, OnErrorableErrorCallback, OnEvaluatedCallback, OnInvalidatedCallback, OnTeardownCallback, RemoveCallback, ResourceEvaluator, ResourceOptions, ResourcesFor, ResourceStatus, } from "./resource.types.ts";
+import type {
+  AnyResource,
+  DependencyKeys,
+  DependencyMap,
+  EvaluationResult,
+  OnErrorableErrorCallback,
+  OnEvaluatedCallback,
+  OnInvalidatedCallback,
+  OnTeardownCallback,
+  RemoveCallback,
+  ResourceEvaluator,
+  ResourceParams,
+  ResourcesFor,
+  ResourceStatus,
+} from "./resource.types.ts";
 import { errorToString } from "./utils/error-to-string.ts";
 import { ResourceReevaluationError } from "./errors/resource-reevaluation-error.ts";
 import { assertExhaustive } from "./utils/assert-exhaustive.ts";
@@ -7,7 +21,7 @@ import type { KeysOptional } from "./utils/keys-optional.ts";
 export class Resource<
   Type,
   const Dependencies extends DependencyMap = {},
-  const Options extends ResourceOptions<Dependencies> = EmptyOptions,
+  const Errorables extends DependencyKeys<Dependencies> = [],
 > {
   static defaultOnErrorableError?: OnErrorableErrorCallback = ({
     key,
@@ -25,40 +39,38 @@ export class Resource<
 
   dependencies: ResourcesFor<Dependencies>;
   dependents = new Set<AnyResource>();
-  evaluator: ResourceEvaluator<Type, Dependencies, Options>;
-  options: Options;
+  evaluator: ResourceEvaluator<Type, Dependencies, Errorables>;
+  errorables: Errorables;
   error?: ResourceReevaluationError;
 
   private internalStatus: ResourceStatus = "unevaluated";
   private evaluationPromise?: Promise<EvaluationResult<Type>>;
   private erroredDependencies = new Set<keyof Dependencies>();
-  private onEvaluatedCallbacks = new Set<OnEvaluatedCallback<Resource<Type, Dependencies, Options>>>();
-  private onInvalidatedCallbacks = new Set<OnInvalidatedCallback<Resource<Type, Dependencies, Options>>>();
-  private onErrorableErrorCallbacks = new Set<OnErrorableErrorCallback<Resource<Type, Dependencies, Options>>>();
+  private onEvaluatedCallbacks = new Set<OnEvaluatedCallback<Resource<Type, Dependencies, Errorables>>>();
+  private onInvalidatedCallbacks = new Set<OnInvalidatedCallback<Resource<Type, Dependencies, Errorables>>>();
+  private onErrorableErrorCallbacks = new Set<OnErrorableErrorCallback<Resource<Type, Dependencies, Errorables>>>();
   private onTeardownCallback?: OnTeardownCallback;
 
-  constructor(
-    evaluator: ResourceEvaluator<Type, {}, EmptyOptions>
-  );
+  constructor(params: {
+    evaluator: ResourceEvaluator<Type, {}, []>
+  });
 
-  constructor(
-    evaluator: ResourceEvaluator<Type, Dependencies, EmptyOptions>,
+  constructor(params: {
+    evaluator: ResourceEvaluator<Type, Dependencies, []>,
     dependencies: ResourcesFor<Dependencies>,
-  );
+  });
 
-  constructor(
-    evaluator: ResourceEvaluator<Type, Dependencies, Options>,
+  constructor(params: {
+    evaluator: ResourceEvaluator<Type, Dependencies, Errorables>,
     dependencies: ResourcesFor<Dependencies>,
-    options: Options,
-  );
+    errorables: Errorables,
+  });
 
-  constructor(
-    evaluator: ResourceEvaluator<Type, Dependencies, Options>,
-    dependencies?: ResourcesFor<Dependencies>,
-    options?: Options,
-  ) {
+  constructor(params: ResourceParams<Type, Dependencies, Errorables>) {
+    const { evaluator, dependencies, errorables } = params;
+
     this.dependencies = dependencies ?? {} as ResourcesFor<Dependencies>;
-    this.options = options ?? { errorables: [] } as unknown as Options;
+    this.errorables = errorables ?? [] as unknown as Errorables;
     this.evaluator = evaluator;
 
     if (Resource.defaultOnEvaluated !== undefined) {
@@ -163,7 +175,7 @@ export class Resource<
   }
 
   onEvaluated(
-    callback: OnEvaluatedCallback<Resource<Type, Dependencies, Options>>,
+    callback: OnEvaluatedCallback<Resource<Type, Dependencies, Errorables>>,
   ): RemoveCallback {
     this.onEvaluatedCallbacks.add(callback);
 
@@ -184,7 +196,7 @@ export class Resource<
   }
 
   onErrorableError(
-    callback: OnErrorableErrorCallback<Resource<Type, Dependencies, Options>>,
+    callback: OnErrorableErrorCallback<Resource<Type, Dependencies, Errorables>>,
   ): RemoveCallback {
     this.onErrorableErrorCallbacks.add(callback);
 
@@ -209,7 +221,7 @@ export class Resource<
   }
 
   onInvalidated(
-    callback: OnInvalidatedCallback<Resource<Type, Dependencies, Options>>,
+    callback: OnInvalidatedCallback<Resource<Type, Dependencies, Errorables>>,
   ): RemoveCallback {
     this.onInvalidatedCallbacks.add(callback);
 
@@ -280,7 +292,7 @@ export class Resource<
   }
 
   private async evaluateDependencies(): Promise<
-    KeysOptional<Dependencies, Options["errorables"]>
+    KeysOptional<Dependencies, Errorables>
   > {
     const dependencies: Partial<Dependencies> = {};
 
@@ -310,7 +322,7 @@ export class Resource<
 
         this.erroredDependencies.add(key);
 
-        const isAllowedToError = this.options?.errorables?.includes(key as any);
+        const isAllowedToError = this.errorables?.includes(key as any);
 
         if (isAllowedToError) {
           this.triggerOnErrorableError(
@@ -324,6 +336,6 @@ export class Resource<
       }
     }
 
-    return dependencies as KeysOptional<Dependencies, Options["errorables"]>
+    return dependencies as KeysOptional<Dependencies, Errorables>
   }
 }

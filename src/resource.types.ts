@@ -13,12 +13,22 @@ export type ResourceStatus = (
   | "destroyed"
 );
 
+export type ResourceParams<
+  Type,
+  Dependencies extends DependencyMap,
+  Errorables extends DependencyKeys<Dependencies>,
+> = {
+  evaluator: ResourceEvaluator<Type, Dependencies, Errorables>,
+  dependencies?: ResourcesFor<Dependencies>,
+  errorables?: Errorables,
+}
+
 export type ResourceEvaluator<
   Type,
   Dependencies extends DependencyMap,
-  Options extends ResourceOptions<Dependencies>,
+  Errorables extends DependencyKeys<Dependencies>,
 > = (
-  dependencies: KeysOptional<Dependencies, Options["errorables"]>
+  dependencies: KeysOptional<Dependencies, Errorables>
 ) => Promise<EvaluationResult<Type>>;
 
 export type EvaluationResult<Type> = {
@@ -30,12 +40,6 @@ export type DependencyMap = Record<string, unknown>;
 
 export type DependencyKeys<Dependencies> = (keyof Dependencies)[];
 
-export type ResourceOptions<
-  Dependencies extends DependencyMap,
-> = {
-  errorables: DependencyKeys<Dependencies>;
-};
-
 export type ResourcesFor<
   Dependencies extends DependencyMap
 > = {
@@ -43,8 +47,6 @@ export type ResourcesFor<
     Resource<Dependencies[K], any, any>
   );
 };
-
-export type EmptyOptions = { errorables: [] };
 
 export type ValueType<Res extends AnyResource> = (
   Res extends Resource<infer T, any, any> ? T : never
