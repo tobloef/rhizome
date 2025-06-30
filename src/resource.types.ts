@@ -33,7 +33,7 @@ export type ResourceEvaluator<
 
 export type EvaluationResult<Type> = {
   value: Type,
-  onTeardown?: OnTeardownCallback,
+  invalidate?: InvalidationCallback,
 };
 
 export type DependencyMap = Record<string, unknown>;
@@ -77,4 +77,4 @@ export type OnInvalidatedCallback<
   callChain: AnyResource[];
 }) => void;
 
-export type OnTeardownCallback = () => Promise<void>;
+export type InvalidationCallback = () => Promise<void>;

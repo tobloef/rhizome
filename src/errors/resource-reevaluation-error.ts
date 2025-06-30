@@ -3,10 +3,10 @@ import type { AnyResource } from "../resource.types.ts";
 
 export class ResourceReevaluationError extends CustomError {
   constructor(
-    resourceNode: AnyResource,
+    resource: AnyResource,
     error: Error,
   ) {
-    const message = `Failed to re-evaluate resource of type "${resourceNode.constructor.name}".`;
+    const message = `Failed to re-evaluate resource of type "${resource.constructor.name}".`;
     super(message, { cause: error });
   }
 }

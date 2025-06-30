@@ -6,7 +6,7 @@ import type {
   OnErrorableErrorCallback,
   OnEvaluatedCallback,
   OnInvalidatedCallback,
-  OnTeardownCallback,
+  InvalidationCallback,
   RemoveCallback,
   ResourceEvaluator,
   ResourceParams,
@@ -23,19 +23,9 @@ export class Resource<
   const Dependencies extends DependencyMap = {},
   const Errorables extends DependencyKeys<Dependencies> = [],
 > {
-  static defaultOnErrorableError?: OnErrorableErrorCallback = ({
-    key,
-    error,
-    resource,
-  }) => {
-    console.error(
-      `Dependency "${key}" of ${resource.constructor.name} failed to load.`,
-      "However, this dependency is errorable so the error will be ignored.\n\n",
-      errorToString(error)
-    );
-  };
-
+  static defaultOnErrorableError?: OnErrorableErrorCallback = logErrorableError;
   static defaultOnEvaluated?: OnEvaluatedCallback = undefined;
+  static defaultOnInvalidated?: OnInvalidatedCallback = undefined;
 
   dependencies: ResourcesFor<Dependencies>;
   dependents = new Set<AnyResource>();
@@ -49,7 +39,7 @@ export class Resource<
   private onEvaluatedCallbacks = new Set<OnEvaluatedCallback<Resource<Type, Dependencies, Errorables>>>();
   private onInvalidatedCallbacks = new Set<OnInvalidatedCallback<Resource<Type, Dependencies, Errorables>>>();
   private onErrorableErrorCallbacks = new Set<OnErrorableErrorCallback<Resource<Type, Dependencies, Errorables>>>();
-  private onTeardownCallback?: OnTeardownCallback;
+  private invalidationCallback?: InvalidationCallback;
 
   constructor(params: {
     evaluator: ResourceEvaluator<Type, {}, []>
@@ -81,6 +71,10 @@ export class Resource<
       this.onErrorableError(Resource.defaultOnErrorableError);
     }
 
+    if (Resource.defaultOnInvalidated !== undefined) {
+      this.onInvalidated(Resource.defaultOnInvalidated);
+    }
+
     for (const dependency of Object.values(this.dependencies)) {
       dependency.dependents.add(this);
     }
@@ -99,12 +93,14 @@ export class Resource<
   }
 
   async destroy() {
-    this.onTeardownCallback?.call(this);
-    this.onTeardownCallback = undefined;
+    await this.invalidationCallback?.();
+    this.invalidationCallback = undefined;
+
     this.onEvaluatedCallbacks.clear();
     this.onErrorableErrorCallbacks.clear();
     this.onInvalidatedCallbacks.clear();
     this.dependents.clear();
+
     this.status = "destroyed";
     this.error = undefined;
   }
@@ -252,9 +248,9 @@ export class Resource<
       try {
         const dependencies = await this.evaluateDependencies();
 
-        await this.onTeardownCallback?.();
+        await this.invalidationCallback?.();
         let result = await this.evaluator(dependencies);
-        this.onTeardownCallback = result.onTeardown;
+        this.invalidationCallback = result.invalidate;
 
         const newStatus = this.status as ResourceStatus;
 
@@ -338,4 +334,18 @@ export class Resource<
 
     return dependencies as KeysOptional<Dependencies, Errorables>
   }
+}
+
+type OnErrorableErrorCallbackParams = Parameters<OnErrorableErrorCallback>[0];
+
+function logErrorableError({
+  key,
+  error,
+  resource,
+}: OnErrorableErrorCallbackParams) {
+  console.error(
+    `Dependency "${key}" of ${resource.constructor.name} failed to load.`,
+    "However, this dependency is errorable so the error will be ignored.\n\n",
+    errorToString(error)
+  );
 }
