@@ -13,23 +13,13 @@ export type ResourceStatus = (
   | "destroyed"
 );
 
-export type ResourceParams<
-  Type,
-  Dependencies extends DependencyMap,
-  Errorables extends DependencyKeys<Dependencies>,
-> = {
-  evaluator: ResourceEvaluator<Type, Dependencies, Errorables>,
-  dependencies?: ResourcesFor<Dependencies>,
-  errorables?: Errorables,
-}
-
 export type ResourceEvaluator<
   Type,
   Dependencies extends DependencyMap,
   Errorables extends DependencyKeys<Dependencies>,
 > = (
   dependencies: KeysOptional<Dependencies, Errorables>
-) => Promise<EvaluationResult<Type>>;
+) => EvaluationResult<Type> | Promise<EvaluationResult<Type>>;
 
 export type EvaluationResult<Type> = {
   value: Type,

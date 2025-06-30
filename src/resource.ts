@@ -9,7 +9,6 @@ import type {
   InvalidationCallback,
   RemoveCallback,
   ResourceEvaluator,
-  ResourceParams,
   ResourcesFor,
   ResourceStatus,
 } from "./resource.types.ts";
@@ -41,24 +40,26 @@ export class Resource<
   private onErrorableErrorCallbacks = new Set<OnErrorableErrorCallback<Resource<Type, Dependencies, Errorables>>>();
   private invalidationCallback?: InvalidationCallback;
 
-  constructor(params: {
+  constructor(
     evaluator: ResourceEvaluator<Type, {}, []>
-  });
+  );
 
-  constructor(params: {
+  constructor(
     evaluator: ResourceEvaluator<Type, Dependencies, []>,
     dependencies: ResourcesFor<Dependencies>,
-  });
+  );
 
-  constructor(params: {
+  constructor(
     evaluator: ResourceEvaluator<Type, Dependencies, Errorables>,
     dependencies: ResourcesFor<Dependencies>,
     errorables: Errorables,
-  });
+  );
 
-  constructor(params: ResourceParams<Type, Dependencies, Errorables>) {
-    const { evaluator, dependencies, errorables } = params;
-
+  constructor(
+    evaluator: ResourceEvaluator<Type, Dependencies, Errorables>,
+    dependencies?: ResourcesFor<Dependencies>,
+    errorables?: Errorables,
+  ) {
     this.dependencies = dependencies ?? {} as ResourcesFor<Dependencies>;
     this.errorables = errorables ?? [] as unknown as Errorables;
     this.evaluator = evaluator;
