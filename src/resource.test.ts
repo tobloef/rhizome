@@ -1,4 +1,4 @@
-import { describe, it } from "node:test";
+import { it } from "node:test";
 import { strictEqual, notStrictEqual } from "node:assert";
 import { Resource } from "./resource.ts";
 
