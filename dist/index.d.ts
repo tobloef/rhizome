@@ -1,3 +1,3 @@
-export { ResourceNode } from "./resource-node.ts";
-export type { ResourceNodes } from "./resource-node.types.ts";
-export { ResourceNodeRefreshError } from "./errors/resource-node-refresh-error.ts";
+export * from "./resource.ts";
+export * from "./resource.types.ts";
+export * from "./errors/resource-reevaluation-error.ts";

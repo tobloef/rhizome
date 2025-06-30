@@ -1,0 +1,36 @@
+import type { AnyResource, DependencyKeys, DependencyMap, EvaluationResult, OnErrorableErrorCallback, OnEvaluatedCallback, OnInvalidatedCallback, RemoveCallback, ResourceEvaluator, ResourcesFor, ResourceStatus } from "./resource.types.ts";
+import { ResourceReevaluationError } from "./errors/resource-reevaluation-error.ts";
+export declare class Resource<Type, const Dependencies extends DependencyMap = {}, const Errorables extends DependencyKeys<Dependencies> = []> {
+    static defaultOnErrorableError?: OnErrorableErrorCallback;
+    static defaultOnEvaluated?: OnEvaluatedCallback;
+    static defaultOnInvalidated?: OnInvalidatedCallback;
+    dependencies: ResourcesFor<Dependencies>;
+    dependents: Set<AnyResource>;
+    evaluator: ResourceEvaluator<Type, Dependencies, Errorables>;
+    errorables: Errorables;
+    error?: ResourceReevaluationError;
+    private internalStatus;
+    private evaluationPromise?;
+    private erroredDependencies;
+    private onEvaluatedCallbacks;
+    private onInvalidatedCallbacks;
+    private onErrorableErrorCallbacks;
+    private invalidationCallback?;
+    constructor(evaluator: ResourceEvaluator<Type, {}, []>);
+    constructor(evaluator: ResourceEvaluator<Type, Dependencies, []>, dependencies: ResourcesFor<Dependencies>);
+    constructor(evaluator: ResourceEvaluator<Type, Dependencies, Errorables>, dependencies: ResourcesFor<Dependencies>, errorables: Errorables);
+    get status(): ResourceStatus;
+    private set status(value);
+    destroy(): Promise<void>;
+    invalidate(invalidationChain?: AnyResource[]): void;
+    private invalidateDependents;
+    evaluate(): Promise<EvaluationResult<Type>>;
+    onEvaluated(callback: OnEvaluatedCallback<Resource<Type, Dependencies, Errorables>>): RemoveCallback;
+    private triggerOnEvaluated;
+    onErrorableError(callback: OnErrorableErrorCallback<Resource<Type, Dependencies, Errorables>>): RemoveCallback;
+    private triggerOnErrorableError;
+    onInvalidated(callback: OnInvalidatedCallback<Resource<Type, Dependencies, Errorables>>): RemoveCallback;
+    private triggerOnInvalidated;
+    private createEvaluationPromise;
+    private evaluateDependencies;
+}
