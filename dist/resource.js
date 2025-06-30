@@ -2,31 +2,33 @@ import { errorToString } from "./utils/error-to-string.js";
 import { ResourceReevaluationError } from "./errors/resource-reevaluation-error.js";
 import { assertExhaustive } from "./utils/assert-exhaustive.js";
 export class Resource {
-    static defaultOnErrorableError = ({ key, error, resource, }) => {
-        console.error(`Dependency "${key}" of ${resource.constructor.name} failed to load.`, "However, this dependency is errorable so the error will be ignored.\n\n", errorToString(error));
-    };
+    static defaultOnErrorableError = logErrorableError;
     static defaultOnEvaluated = undefined;
+    static defaultOnInvalidated = undefined;
     dependencies;
     dependents = new Set();
     evaluator;
-    options;
+    errorables;
     error;
     internalStatus = "unevaluated";
     evaluationPromise;
     erroredDependencies = new Set();
     onEvaluatedCallbacks = new Set();
+    onInvalidatedCallbacks = new Set();
     onErrorableErrorCallbacks = new Set();
-    onMarkedStaleCallbacks = new Set();
-    onTeardownCallback;
-    constructor(evaluator, dependencies, options) {
+    invalidationCallback;
+    constructor(evaluator, dependencies, errorables) {
         this.dependencies = dependencies ?? {};
-        this.options = options ?? { errorables: [] };
+        this.errorables = errorables ?? [];
         this.evaluator = evaluator;
         if (Resource.defaultOnEvaluated !== undefined) {
             this.onEvaluated(Resource.defaultOnEvaluated);
         }
         if (Resource.defaultOnErrorableError !== undefined) {
             this.onErrorableError(Resource.defaultOnErrorableError);
+        }
+        if (Resource.defaultOnInvalidated !== undefined) {
+            this.onInvalidated(Resource.defaultOnInvalidated);
         }
         for (const dependency of Object.values(this.dependencies)) {
             dependency.dependents.add(this);
@@ -42,37 +44,37 @@ export class Resource {
         }
     }
     async destroy() {
-        this.onTeardownCallback?.call(this);
-        this.onTeardownCallback = undefined;
+        await this.invalidationCallback?.();
+        this.invalidationCallback = undefined;
         this.onEvaluatedCallbacks.clear();
         this.onErrorableErrorCallbacks.clear();
-        this.onMarkedStaleCallbacks.clear();
+        this.onInvalidatedCallbacks.clear();
         this.dependents.clear();
         this.status = "destroyed";
         this.error = undefined;
     }
-    markStale(callChain = []) {
+    invalidate(invalidationChain = []) {
         switch (this.status) {
             case "unevaluated":
-            case "stale":
-                // Nothing to do, already stale.
+            case "invalidated":
+                // Nothing to do, already invalidated.
                 break;
             case "evaluated":
             case "evaluating":
             case "errored":
-                this.status = "stale";
-                this.triggerOnMarkedStale(callChain);
-                this.markDependentsStale([...callChain, this]);
+                this.status = "invalidated";
+                this.triggerOnInvalidated(invalidationChain);
+                this.invalidateDependents([...invalidationChain, this]);
                 break;
             case "destroyed":
-                throw new Error(`Cannot mark resource ${this.constructor.name} as stale, it has already been destroyed.`);
+                throw new Error(`Cannot invalidate resource ${this.constructor.name}, it has already been destroyed.`);
             default:
                 assertExhaustive(this.status);
         }
     }
-    markDependentsStale(callChain = [this]) {
+    invalidateDependents(callChain = [this]) {
         for (const dependent of this.dependents) {
-            dependent.markStale(callChain);
+            dependent.invalidate(callChain);
         }
     }
     async evaluate() {
@@ -88,7 +90,7 @@ export class Resource {
                 case "errored":
                     throw this.error;
                 case "unevaluated":
-                case "stale":
+                case "invalidated":
                     this.evaluationPromise = this.createEvaluationPromise();
                     break;
             }
@@ -133,14 +135,14 @@ export class Resource {
             });
         }
     }
-    onMarkedStale(callback) {
-        this.onMarkedStaleCallbacks.add(callback);
+    onInvalidated(callback) {
+        this.onInvalidatedCallbacks.add(callback);
         return () => {
-            this.onMarkedStaleCallbacks.delete(callback);
+            this.onInvalidatedCallbacks.delete(callback);
         };
     }
-    triggerOnMarkedStale(callChain) {
-        for (const callback of this.onMarkedStaleCallbacks) {
+    triggerOnInvalidated(callChain) {
+        for (const callback of this.onInvalidatedCallbacks) {
             callback({
                 resource: this,
                 callChain,
@@ -155,9 +157,9 @@ export class Resource {
             this.status = "evaluating";
             try {
                 const dependencies = await this.evaluateDependencies();
-                await this.onTeardownCallback?.();
+                await this.invalidationCallback?.();
                 let result = await this.evaluator(dependencies);
-                this.onTeardownCallback = result.onTeardown;
+                this.invalidationCallback = result.invalidate;
                 const newStatus = this.status;
                 // Check if it was marked a new status while we were loading
                 switch (newStatus) {
@@ -173,16 +175,16 @@ export class Resource {
                         // Oh, it's already ready, so we can just resolve
                         break;
                     case "unevaluated":
-                    case "stale":
-                        // It went back to a stale state, so we need to re-evaluate
+                    case "invalidated":
+                        // It went back to an invalidated state, so we need to re-evaluate
                         result = await this.createEvaluationPromise();
                 }
                 resolve(result);
                 this.triggerOnEvaluated(result.value);
             }
-            catch (e) {
-                reject(e);
-                this.triggerOnEvaluated(new ResourceReevaluationError(this, e));
+            catch (error) {
+                reject(error);
+                this.triggerOnEvaluated(new ResourceReevaluationError(this, error));
             }
         });
     }
@@ -203,7 +205,7 @@ export class Resource {
                     continue;
                 }
                 this.erroredDependencies.add(key);
-                const isAllowedToError = this.options?.errorables?.includes(key);
+                const isAllowedToError = this.errorables?.includes(key);
                 if (isAllowedToError) {
                     this.triggerOnErrorableError(key, result.reason, this.dependencies[key]);
                 }
@@ -214,5 +216,8 @@ export class Resource {
         }
         return dependencies;
     }
+}
+function logErrorableError({ key, error, resource, }) {
+    console.error(`Dependency "${key}" of ${resource.constructor.name} failed to load.`, "However, this dependency is errorable so the error will be ignored.\n\n", errorToString(error));
 }
 //# sourceMappingURL=resource.js.map

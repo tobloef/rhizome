@@ -1,7 +1,7 @@
 import { CustomError } from "../utils/custom-error.js";
 export class ResourceReevaluationError extends CustomError {
-    constructor(resourceNode, error) {
-        const message = `Failed to re-evaluate resource of type "${resourceNode.constructor.name}".`;
+    constructor(resource, error) {
+        const message = `Failed to re-evaluate resource of type "${resource.constructor.name}".`;
         super(message, { cause: error });
     }
 }
