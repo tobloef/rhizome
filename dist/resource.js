@@ -10,7 +10,7 @@ export class Resource {
     evaluator;
     options = {
         errorables: [],
-        dependentsInvalidatedWhen: "invalidated",
+        dependentsInvalidateWhen: "invalidated",
     };
     error;
     internalStatus = "unevaluated";
@@ -73,7 +73,7 @@ export class Resource {
                 this.triggerOnInvalidated(invalidationChain);
                 const newCallChain = [...invalidationChain, this];
                 this.recentCallChain = newCallChain;
-                if (this.options.dependentsInvalidatedWhen === "invalidated") {
+                if (this.options.dependentsInvalidateWhen === "invalidated") {
                     this.invalidateDependents(newCallChain);
                 }
                 break;
@@ -198,7 +198,7 @@ export class Resource {
                 this.triggerOnEvaluated(new ResourceReevaluationError(error));
             }
             finally {
-                if (this.options.dependentsInvalidatedWhen === "reevaluated") {
+                if (this.options.dependentsInvalidateWhen === "reevaluated") {
                     this.invalidateDependents(this.recentCallChain);
                 }
             }

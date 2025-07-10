@@ -31,10 +31,10 @@ export class Resource<
   evaluator: ResourceEvaluator<Type, Dependencies, Errorables>;
   options: {
     errorables?: Errorables;
-    dependentsInvalidatedWhen?: "invalidated" | "reevaluated";
+    dependentsInvalidateWhen?: "invalidated" | "reevaluated";
   } = {
     errorables: [] as unknown as Errorables,
-    dependentsInvalidatedWhen: "invalidated",
+    dependentsInvalidateWhen: "invalidated",
   }
   error?: ResourceReevaluationError;
 
@@ -61,7 +61,7 @@ export class Resource<
     dependencies: ResourcesFor<Dependencies>,
     options: {
       errorables?: Errorables;
-      dependentsInvalidatedWhen?: "invalidated" | "reevaluated";
+      dependentsInvalidateWhen?: "invalidated" | "reevaluated";
     }
   );
 
@@ -70,7 +70,7 @@ export class Resource<
     dependencies?: ResourcesFor<Dependencies>,
     options?: {
       errorables?: Errorables;
-      dependsInvalidatedWhen?: "invalidated" | "reevaluated";
+      dependentsInvalidateWhen?: "invalidated" | "reevaluated";
     }
   ) {
     this.dependencies = dependencies ?? {} as ResourcesFor<Dependencies>;
@@ -138,7 +138,7 @@ export class Resource<
         this.triggerOnInvalidated(invalidationChain);
         const newCallChain = [...invalidationChain, this];
         this.recentCallChain = newCallChain;
-        if (this.options.dependentsInvalidatedWhen === "invalidated") {
+        if (this.options.dependentsInvalidateWhen === "invalidated") {
           this.invalidateDependents(newCallChain);
         }
         break;
@@ -305,7 +305,7 @@ export class Resource<
 
         this.triggerOnEvaluated(new ResourceReevaluationError(error));
       } finally {
-        if (this.options.dependentsInvalidatedWhen === "reevaluated") {
+        if (this.options.dependentsInvalidateWhen === "reevaluated") {
           this.invalidateDependents(this.recentCallChain);
         }
       }

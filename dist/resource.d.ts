@@ -9,7 +9,7 @@ export declare class Resource<Type, const Dependencies extends DependencyMap = {
     evaluator: ResourceEvaluator<Type, Dependencies, Errorables>;
     options: {
         errorables?: Errorables;
-        dependentsInvalidatedWhen?: "invalidated" | "reevaluated";
+        dependentsInvalidateWhen?: "invalidated" | "reevaluated";
     };
     error?: ResourceReevaluationError;
     private internalStatus;
@@ -24,7 +24,7 @@ export declare class Resource<Type, const Dependencies extends DependencyMap = {
     constructor(evaluator: ResourceEvaluator<Type, Dependencies, []>, dependencies: ResourcesFor<Dependencies>);
     constructor(evaluator: ResourceEvaluator<Type, Dependencies, Errorables>, dependencies: ResourcesFor<Dependencies>, options: {
         errorables?: Errorables;
-        dependentsInvalidatedWhen?: "invalidated" | "reevaluated";
+        dependentsInvalidateWhen?: "invalidated" | "reevaluated";
     });
     get status(): ResourceStatus;
     private set status(value);
