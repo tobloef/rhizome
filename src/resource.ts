@@ -29,7 +29,13 @@ export class Resource<
   dependencies: ResourcesFor<Dependencies>;
   dependents = new Set<AnyResource>();
   evaluator: ResourceEvaluator<Type, Dependencies, Errorables>;
-  errorables: Errorables;
+  options: {
+    errorables?: Errorables;
+    dependentsInvalidatedWhen?: "invalidated" | "reevaluated";
+  } = {
+    errorables: [] as unknown as Errorables,
+    dependentsInvalidatedWhen: "invalidated",
+  }
   error?: ResourceReevaluationError;
 
   private internalStatus: ResourceStatus = "unevaluated";
@@ -39,6 +45,7 @@ export class Resource<
   private onInvalidatedCallbacks = new Set<OnInvalidatedCallback<Resource<Type, Dependencies, Errorables>>>();
   private onErrorableErrorCallbacks = new Set<OnErrorableErrorCallback<Resource<Type, Dependencies, Errorables>>>();
   private invalidationCallback?: InvalidationCallback;
+  private recentCallChain: AnyResource[] = [];
 
   constructor(
     evaluator: ResourceEvaluator<Type, {}, []>
@@ -52,16 +59,25 @@ export class Resource<
   constructor(
     evaluator: ResourceEvaluator<Type, Dependencies, Errorables>,
     dependencies: ResourcesFor<Dependencies>,
-    errorables: Errorables,
+    options: {
+      errorables?: Errorables;
+      dependentsInvalidatedWhen?: "invalidated" | "reevaluated";
+    }
   );
 
   constructor(
     evaluator: ResourceEvaluator<Type, Dependencies, Errorables>,
     dependencies?: ResourcesFor<Dependencies>,
-    errorables?: Errorables,
+    options?: {
+      errorables?: Errorables;
+      dependsInvalidatedWhen?: "invalidated" | "reevaluated";
+    }
   ) {
     this.dependencies = dependencies ?? {} as ResourcesFor<Dependencies>;
-    this.errorables = errorables ?? [] as unknown as Errorables;
+    this.options = {
+      ...this.options,
+      ...options,
+    }
     this.evaluator = evaluator;
 
     if (Resource.defaultOnEvaluated !== undefined) {
@@ -120,7 +136,11 @@ export class Resource<
       case "errored":
         this.status = "invalidated";
         this.triggerOnInvalidated(invalidationChain);
-        this.invalidateDependents([...invalidationChain, this]);
+        const newCallChain = [...invalidationChain, this];
+        this.recentCallChain = newCallChain;
+        if (this.options.dependentsInvalidatedWhen === "invalidated") {
+          this.invalidateDependents(newCallChain);
+        }
         break;
 
       case "destroyed":
@@ -164,7 +184,7 @@ export class Resource<
     try {
       return await this.evaluationPromise;
     } catch (error) {
-      const refreshError = new ResourceReevaluationError(this, error);
+      const refreshError = new ResourceReevaluationError(error);
       this.status = "errored";
       this.error = refreshError;
       throw refreshError;
@@ -283,7 +303,11 @@ export class Resource<
       } catch (error) {
         reject(error);
 
-        this.triggerOnEvaluated(new ResourceReevaluationError(this, error));
+        this.triggerOnEvaluated(new ResourceReevaluationError(error));
+      } finally {
+        if (this.options.dependentsInvalidatedWhen === "reevaluated") {
+          this.invalidateDependents(this.recentCallChain);
+        }
       }
     });
   }
@@ -319,7 +343,7 @@ export class Resource<
 
         this.erroredDependencies.add(key);
 
-        const isAllowedToError = this.errorables?.includes(key as any);
+        const isAllowedToError = this.options.errorables?.includes(key as any);
 
         if (isAllowedToError) {
           this.triggerOnErrorableError(

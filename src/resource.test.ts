@@ -36,3 +36,46 @@ it("Passes simple test suite", async () => {
 
   notStrictEqual(string1.value, string2.value);
 });
+
+it("Can pass errorables", async () => {
+  const errorableResource = new Resource<number>(
+    () => { throw new Error("This is an error"); },
+  );
+
+  try {
+    await errorableResource.evaluate();
+  } catch (error) {
+    strictEqual(error, errorableResource.error);
+    strictEqual(error instanceof Error, true);
+    strictEqual((error?.cause as Error).message, "This is an error");
+  }
+
+  const resourceThatAllowsError = new Resource(
+    ({ errorable }) => {
+      if (errorable === undefined) {
+        return { value: "It errored" }
+      } else {
+        return { value: "It did not error" };
+      }
+    },
+    { errorable: errorableResource },
+    { errorables: ["errorable"] },
+  );
+
+  const result1 = await resourceThatAllowsError.evaluate();
+  strictEqual(result1.value, "It errored");
+
+  const resourceThatDoesNotAllowError = new Resource(
+    ({ errorable }) => {
+      return { value: `It did not error and has value ${errorable}` };
+    },
+    { errorable: errorableResource },
+  );
+
+  try {
+    await resourceThatDoesNotAllowError.evaluate();
+  } catch (error) {
+    strictEqual(error instanceof Error, true);
+    strictEqual((error as Error).cause, errorableResource.error);
+  }
+});

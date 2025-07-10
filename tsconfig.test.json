@@ -12,7 +12,8 @@
     "checkJs": true,
     "allowJs": true,
     "noEmit": true,
-    "noUncheckedIndexedAccess": true
+    "noUncheckedIndexedAccess": true,
+    "useUnknownInCatchVariables": false
   },
   "exclude": [
     "node_modules",

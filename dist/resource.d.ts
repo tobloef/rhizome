@@ -7,7 +7,10 @@ export declare class Resource<Type, const Dependencies extends DependencyMap = {
     dependencies: ResourcesFor<Dependencies>;
     dependents: Set<AnyResource>;
     evaluator: ResourceEvaluator<Type, Dependencies, Errorables>;
-    errorables: Errorables;
+    options: {
+        errorables?: Errorables;
+        dependentsInvalidatedWhen?: "invalidated" | "reevaluated";
+    };
     error?: ResourceReevaluationError;
     private internalStatus;
     private evaluationPromise?;
@@ -16,9 +19,13 @@ export declare class Resource<Type, const Dependencies extends DependencyMap = {
     private onInvalidatedCallbacks;
     private onErrorableErrorCallbacks;
     private invalidationCallback?;
+    private recentCallChain;
     constructor(evaluator: ResourceEvaluator<Type, {}, []>);
     constructor(evaluator: ResourceEvaluator<Type, Dependencies, []>, dependencies: ResourcesFor<Dependencies>);
-    constructor(evaluator: ResourceEvaluator<Type, Dependencies, Errorables>, dependencies: ResourcesFor<Dependencies>, errorables: Errorables);
+    constructor(evaluator: ResourceEvaluator<Type, Dependencies, Errorables>, dependencies: ResourcesFor<Dependencies>, options: {
+        errorables?: Errorables;
+        dependentsInvalidatedWhen?: "invalidated" | "reevaluated";
+    });
     get status(): ResourceStatus;
     private set status(value);
     destroy(): Promise<void>;
